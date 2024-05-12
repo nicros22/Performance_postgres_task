@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS info (
+    id SERIAL PRIMARY KEY,
+    data TEXT NOT NULL
+);
