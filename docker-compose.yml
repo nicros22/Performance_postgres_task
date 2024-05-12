@@ -1,0 +1,55 @@
+version: "3.7"
+
+services:
+  postgres:
+    container_name: "performance_postgres"
+    image: postgres:16
+    env_file:
+      - ./data/postgres.env
+    build:
+        context: .
+        dockerfile: postgres/Dockerfile
+    volumes:
+      - postgres_volume:/var/lib/postgresql/data/
+      - ./postgres/entrypoint:/docker-entrypoint-initdb.d/
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    ports:
+      - 15432:5432
+    networks:
+      - task_pgpro
+
+  python:
+    container_name: "performance_python"
+    env_file:
+      - ./data/postgres.env
+    build:
+      context: .
+      dockerfile: python/Dockerfile
+    command: python insert_data.py --threads 10 --duration 600  # 10 потоков в течение 10 минут
+    volumes:
+      - ./python:/app
+    depends_on:
+      - postgres
+    networks:
+      - task_pgpro
+
+  monitoring_and_profiling:
+    container_name: "performance_monitoring_and_profiling"
+    image: ubuntu
+    privileged: true  # Для доступа к хостовой системе
+    command: apt-get update && apt-get install
+    volumes:
+      - ./metrics:/app/metrics
+      - ./profiling:/app/profiling
+    depends_on:
+      - python
+      - postgres
+    networks:
+      - task_pgpro
+
+networks:
+  task_pgpro:
+
+volumes:
+  postgres_volume:
